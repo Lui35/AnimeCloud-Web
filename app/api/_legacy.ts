@@ -1,4 +1,5 @@
-const CATALOG_URL = "https://khkhkhkh.com/animecp/animeapi65/";
+const CATALOG_URL = process.env.LEGACY_CATALOG_URL || "https://khkhkhkh.com/animecp/animeapi65/";
+const ACCOUNT_URL = process.env.LEGACY_ACCOUNT_URL || "https://animecloudapp.com/aanimeApp65/";
 
 export type RawRecord = Record<string, unknown>;
 
@@ -26,6 +27,17 @@ export async function legacyPlayback(epID: string) {
   return response.text();
 }
 
+export async function accountCommand(command: string, fields: Record<string, string> = {}) {
+  const response = await fetch(ACCOUNT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "AnimeCloudWeb/1.0" },
+    body: new URLSearchParams({ command, ...fields }),
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!response.ok) throw new Error(`Legacy account service returned ${response.status}`);
+  return response.json() as Promise<Record<string, unknown>>;
+}
+
 export function rows(payload: Record<string, unknown>, key = "result") {
   return Array.isArray(payload[key]) ? payload[key] as RawRecord[] : [];
 }
@@ -45,6 +57,6 @@ export function anime(row: RawRecord) {
 
 export function corsJson(data: unknown, init: ResponseInit = {}) {
   const headers = new Headers(init.headers);
-  headers.set("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
+  if (!headers.has("Cache-Control")) headers.set("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
   return Response.json(data, { ...init, headers });
 }

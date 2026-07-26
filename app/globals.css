@@ -27,10 +27,11 @@ button { color: inherit; }
 .site-header nav a:hover, .site-header nav a.active { color: white; }
 .site-header nav a.active::after { content: ""; position: absolute; height: 2px; width: 22px; border-radius: 2px; background: linear-gradient(90deg, var(--violet), var(--rose)); bottom: 18px; left: 50%; transform: translateX(-50%); }
 .header-actions { display: flex; align-items: center; gap: 10px; }
-.icon-button, .library-button { height: 38px; border: 1px solid var(--line); background: rgba(255,255,255,.05); border-radius: 12px; cursor: pointer; backdrop-filter: blur(12px); }
+.icon-button, .library-button, .account-button { height: 38px; border: 1px solid var(--line); background: rgba(255,255,255,.05); border-radius: 12px; cursor: pointer; backdrop-filter: blur(12px); }
 .icon-button { width: 40px; font-size: 24px; line-height: 1; }
 .library-button { padding: 0 15px; font-size: 12px; font-weight: 700; }
 .library-button span { color: white; background: var(--violet); border-radius: 20px; margin-left: 6px; padding: 2px 6px; font-size: 10px; }
+.account-button { min-width: 38px; padding: 0 12px; font-size: 10px; font-weight: 800; background: linear-gradient(135deg, rgba(139,92,246,.35), rgba(240,93,156,.22)); }
 
 .hero { min-height: 760px; height: min(79vw, 820px); position: relative; overflow: hidden; display: flex; align-items: center; padding: 80px clamp(24px, 7.2vw, 120px) 48px; background-color: #100b16; background-size: cover; background-position: center 28%; isolation: isolate; }
 .hero::before { content: ""; position: absolute; inset: 0; z-index: -3; background: radial-gradient(circle at 74% 43%, hsla(var(--poster-hue, 272), 70%, 48%, .35), transparent 27%), radial-gradient(circle at 63% 37%, rgba(240,93,156,.22), transparent 20%), linear-gradient(90deg, #09070d 5%, rgba(9,7,13,.9) 35%, rgba(9,7,13,.22) 78%), linear-gradient(0deg, #09070d, transparent 45%); }
@@ -159,6 +160,22 @@ footer p { margin-right: auto; color: #9e92a4; }
 .toast { position: fixed; z-index: 200; left: 50%; bottom: 24px; transform: translateX(-50%); background: #f4eef8; color: #17121b; padding: 11px 17px; border-radius: 10px; box-shadow: 0 14px 50px rgba(0,0,0,.4); font-size: 10px; font-weight: 750; }
 .today-indicator { position: fixed; z-index: 15; right: 16px; bottom: 14px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 20px; color: #897d90; background: rgba(13,9,17,.78); backdrop-filter: blur(10px); font-size: 8px; pointer-events: none; }
 
+.account-overlay { display: grid; place-items: center; }
+.account-panel { width: min(520px, 100%); min-height: 590px; position: relative; border: 1px solid rgba(255,255,255,.12); border-radius: 27px; padding: clamp(34px, 6vw, 66px); background: radial-gradient(circle at 82% 8%, rgba(139,92,246,.2), transparent 30%), #110d16; box-shadow: 0 40px 120px rgba(0,0,0,.55); }
+.account-panel .detail-close { position: absolute; right: 20px; top: 20px; }
+.account-panel h2 { font: clamp(36px, 6vw, 54px)/.98 Georgia, serif; letter-spacing: -.055em; margin: 12px 0 14px; }
+.account-panel form > p, .account-signed-in > p { color: var(--muted); font-size: 11px; line-height: 1.65; margin-bottom: 28px; }
+.account-panel label { display: block; color: #b5a9ba; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin: 15px 0; }
+.account-panel input { width: 100%; height: 48px; margin-top: 7px; padding: 0 13px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.045); color: white; outline: none; text-transform: none; letter-spacing: normal; }
+.account-panel input:focus { border-color: rgba(196,167,255,.6); }
+.account-submit { width: 100%; margin-top: 10px; }
+.auth-message { color: #e7bdd0; background: rgba(240,93,156,.08); border: 1px solid rgba(240,93,156,.17); border-radius: 10px; padding: 9px 11px; font-size: 9px; margin-bottom: 10px; }
+.account-signed-in { min-height: 455px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
+.account-avatar { width: 74px; height: 74px; display: grid; place-items: center; border-radius: 22px; margin-bottom: 24px; background: linear-gradient(135deg, var(--violet), var(--rose)); font: 800 24px Georgia, serif; box-shadow: 0 18px 45px rgba(139,92,246,.25); }
+.account-security { display: flex; flex-direction: column; gap: 6px; padding: 14px; margin-bottom: 23px; border: 1px solid var(--line); border-radius: 13px; background: rgba(255,255,255,.03); }
+.account-security strong { font-size: 10px; }
+.account-security span { color: #8c8092; font-size: 9px; line-height: 1.5; }
+
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes slide-in { from { transform: translateX(100%); } }
 
@@ -175,6 +192,7 @@ footer p { margin-right: auto; color: #9e92a4; }
   .site-header nav { display: none; }
   .brand > span:last-child { display: none; }
   .library-button { padding: 0 11px; }
+  .account-button { padding: 0 9px; }
   .hero { min-height: 650px; height: 90vh; align-items: flex-end; padding-bottom: 100px; }
   .hero h1 { font-size: clamp(48px, 15vw, 72px); }
   .hero-title-art { top: 18%; right: -20%; transform: scale(.72); }

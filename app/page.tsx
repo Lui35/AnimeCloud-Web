@@ -1,6 +1,6 @@
 "use client";
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
+import { CSSProperties, FormEvent, useEffect, useMemo, useState } from "react";
 
 type Anime = {
   id: string;
@@ -35,6 +35,8 @@ type HomePayload = {
   schedule: Anime[];
   source?: "live" | "fallback";
 };
+
+type User = { username: string; email: string; profilePicture?: string; subscribe?: string };
 
 const FALLBACK: HomePayload = {
   source: "fallback",
@@ -94,6 +96,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Anime[]>([]);
   const [searching, setSearching] = useState(false);
@@ -101,6 +104,11 @@ export default function Home() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [library, setLibrary] = useState<Anime[]>([]);
   const [notice, setNotice] = useState("");
+  const [user, setUser] = useState<User | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authMessage, setAuthMessage] = useState("");
 
   useEffect(() => {
     const saved = localStorage.getItem("anime-cloud-library");
@@ -112,6 +120,7 @@ export default function Home() {
       .then((data: HomePayload) => setHome(data))
       .catch(() => setHome(FALLBACK))
       .finally(() => setLoading(false));
+    fetch("/api/me").then((response) => response.json()).then((data: { user: User | null }) => setUser(data.user)).catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -166,6 +175,27 @@ export default function Home() {
     window.setTimeout(() => setNotice(""), 3200);
   }
 
+  async function login(event: FormEvent) {
+    event.preventDefault();
+    setAuthBusy(true);
+    setAuthMessage("");
+    try {
+      const response = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+      const data = await response.json() as { user?: User; message?: string };
+      if (!response.ok || !data.user) throw new Error(data.message || "Unable to sign in.");
+      setUser(data.user);
+      setPassword("");
+      setAuthMessage("Signed in securely.");
+    } catch (error) { setAuthMessage(error instanceof Error ? error.message : "Unable to sign in."); }
+    finally { setAuthBusy(false); }
+  }
+
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setUser(null);
+    setAuthMessage("");
+  }
+
   return (
     <main>
       <header className="site-header">
@@ -178,6 +208,7 @@ export default function Home() {
         <div className="header-actions">
           <button className="icon-button" onClick={() => setSearchOpen(true)} aria-label="Search">⌕</button>
           <button className="library-button" onClick={() => setLibraryOpen(true)}>My List <span>{library.length}</span></button>
+          <button className="account-button" onClick={() => setAccountOpen(true)}>{user ? initials(user.username) : "Sign in"}</button>
         </div>
       </header>
 
@@ -247,6 +278,13 @@ export default function Home() {
         <aside className="library-drawer"><div className="drawer-heading"><div><span className="section-kicker">Saved locally</span><h2>My List</h2></div><button onClick={() => setLibraryOpen(false)}>×</button></div>
           {library.length ? <div className="library-list">{library.map((anime, index) => <div key={anime.id}><button onClick={() => openAnime(anime)}><span className="result-art" style={posterStyle(anime, index)}>{initials(anime.name)}</span><span><strong>{anime.name}</strong><small>{anime.year || "Ready to watch"}</small></span></button><button className="remove-button" onClick={() => toggleLibrary(anime)} aria-label={`Remove ${anime.name}`}>×</button></div>)}</div> : <div className="empty-state"><span>◇</span><h3>Your list is waiting</h3><p>Save anything you want to watch next. It stays on this device.</p><button className="primary-button" onClick={() => { setLibraryOpen(false); setSearchOpen(true); }}>Find anime</button></div>}
         </aside>
+      </div>}
+
+      {accountOpen && <div className="overlay account-overlay" role="dialog" aria-modal="true" aria-label="Anime Cloud account" onMouseDown={(event) => event.currentTarget === event.target && setAccountOpen(false)}>
+        <div className="account-panel"><button className="detail-close" onClick={() => setAccountOpen(false)} aria-label="Close account">×</button>
+          {user ? <div className="account-signed-in"><span className="account-avatar">{initials(user.username)}</span><span className="section-kicker">Anime Cloud account</span><h2>Welcome back,<br />{user.username}.</h2><p>{user.email}</p><div className="account-security"><strong>Secure session</strong><span>Your legacy account token stays encrypted in an HTTP-only cookie and is never exposed to browser storage.</span></div><button className="secondary-button" onClick={logout}>Sign out</button></div>
+          : <form onSubmit={login}><span className="section-kicker">Legacy account</span><h2>Keep your cloud<br />within reach.</h2><p>Sign in through this server. Your password is forwarded once and never stored.</p><label>Email<input type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /></label><label>Password<input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••••••" /></label>{authMessage && <div className="auth-message" role="status">{authMessage}</div>}<button className="primary-button account-submit" disabled={authBusy}>{authBusy ? "Signing in…" : "Sign in securely"}</button></form>}
+        </div>
       </div>}
 
       {selected && <div className="overlay detail-overlay" role="dialog" aria-modal="true" aria-label={`${selected.name} details`} onMouseDown={(event) => event.currentTarget === event.target && setSelected(null)}>
