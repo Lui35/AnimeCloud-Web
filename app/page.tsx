@@ -1,6 +1,9 @@
 "use client";
 
 import { CSSProperties, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { SiteHeader } from "./_components/site-header";
+import { PageLoading } from "./_components/page-loading";
 
 type Anime = {
   id: string;
@@ -31,6 +34,7 @@ type AnimeDetail = Anime & {
 
 type HomePayload = {
   featured: Anime[];
+  newAnime: Anime[];
   latest: Anime[];
   schedule: Anime[];
   source?: "live" | "fallback";
@@ -38,32 +42,7 @@ type HomePayload = {
 
 type User = { username: string; email: string; profilePicture?: string; subscribe?: string };
 
-const FALLBACK: HomePayload = {
-  source: "fallback",
-  featured: [
-    { id: "2571", name: "Solo Leveling Season 2", year: "2025", status: "Completed", keywords: "action fantasy adventure" },
-    { id: "2", name: "Frieren: Beyond Journey's End", year: "2023", status: "Completed", keywords: "fantasy adventure drama" },
-    { id: "3", name: "The Apothecary Diaries", year: "2023", status: "Ongoing", keywords: "mystery drama historical" },
-    { id: "4", name: "Dandadan", year: "2024", status: "Ongoing", keywords: "supernatural action comedy" },
-    { id: "5", name: "One Piece", year: "1999", status: "Ongoing", keywords: "adventure action" },
-    { id: "6", name: "Wind Breaker", year: "2024", status: "Ongoing", keywords: "action school" },
-  ],
-  latest: [
-    { id: "11", name: "Solo Leveling Season 2", epName: "Episode 13", year: "Today" },
-    { id: "12", name: "The Apothecary Diaries", epName: "Episode 24", year: "Today" },
-    { id: "13", name: "One Piece", epName: "Episode 1138", year: "Yesterday" },
-    { id: "14", name: "Dandadan", epName: "Episode 12", year: "Yesterday" },
-  ],
-  schedule: [
-    { id: "21", name: "One Piece", day: "Sunday" },
-    { id: "22", name: "Summer Pockets", day: "Monday" },
-    { id: "23", name: "The Shiunji Family Children", day: "Tuesday" },
-    { id: "24", name: "The Beginning After the End", day: "Wednesday" },
-    { id: "25", name: "Wind Breaker", day: "Thursday" },
-    { id: "26", name: "Fire Force", day: "Friday" },
-    { id: "27", name: "The Apothecary Diaries", day: "Saturday" },
-  ],
-};
+const EMPTY_HOME: HomePayload = { featured: [], newAnime: [], latest: [], schedule: [] };
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const todayName = days[new Date().getDay()];
@@ -92,16 +71,16 @@ function PosterCard({ anime, index, onOpen }: { anime: Anime; index: number; onO
 }
 
 export default function Home() {
-  const [home, setHome] = useState<HomePayload>(FALLBACK);
+  const router = useRouter();
+  const [home, setHome] = useState<HomePayload>(EMPTY_HOME);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const [libraryOpen, setLibraryOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Anime[]>([]);
   const [searching, setSearching] = useState(false);
   const [selected, setSelected] = useState<AnimeDetail | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
   const [library, setLibrary] = useState<Anime[]>([]);
   const [notice, setNotice] = useState("");
   const [user, setUser] = useState<User | null>(null);
@@ -114,21 +93,23 @@ export default function Home() {
   const [aniList, setAniList] = useState<{ connected: boolean; viewer?: { name: string } | null }>({ connected: false });
   const [player, setPlayer] = useState<{ episode: Episode; anime: AnimeDetail; url: string; episodeNumber: number } | null>(null);
   const progressSaveAt = useRef(0);
+  const homeAniListSynced = useRef<Set<string>>(new Set());
   const [recommendOpen, setRecommendOpen] = useState(false);
   const [recommendPrompt, setRecommendPrompt] = useState("");
   const [recommendations, setRecommendations] = useState<Anime[]>([]);
   const [recommendBusy, setRecommendBusy] = useState(false);
 
   useEffect(() => {
+    const homeLoadStarted = Date.now();
     const saved = localStorage.getItem("anime-cloud-library");
     if (saved) {
       try { const parsed = JSON.parse(saved); queueMicrotask(() => setLibrary(parsed)); } catch { /* ignore corrupt local state */ }
     }
-    fetch("/api/home")
-      .then((response) => response.ok ? response.json() : Promise.reject())
+    fetch("/api/home", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("Home data is unavailable")))
       .then((data: HomePayload) => setHome(data))
-      .catch(() => setHome(FALLBACK))
-      .finally(() => setLoading(false));
+      .catch(() => setLoadError("Anime Cloud could not load the home feed."))
+      .finally(() => window.setTimeout(() => setLoading(false), Math.max(0, 350 - (Date.now() - homeLoadStarted))));
     fetch("/api/me").then((response) => response.json()).then((data: { user: User | null }) => { setUser(data.user); if (data.user) { loadRemoteLibrary(); refreshAniList(); } }).catch(() => undefined);
   }, []);
 
@@ -141,24 +122,20 @@ export default function Home() {
         const data = await response.json() as { result?: Anime[] };
         setResults(data.result || []);
       } catch {
-        const pool = [...home.featured, ...home.latest, ...home.schedule];
+        const pool = [...home.featured, ...home.newAnime, ...home.latest, ...home.schedule];
         setResults(pool.filter((anime) => anime.name.toLowerCase().includes(query.toLowerCase())));
       } finally { setSearching(false); }
     }, 280);
     return () => window.clearTimeout(timer);
   }, [query, home]);
 
-  const hero = home.featured[0] || FALLBACK.featured[0];
+  const hero = home.featured[0];
   const scheduledToday = useMemo(() => home.schedule.filter((anime) => anime.day === todayName), [home.schedule]);
 
   async function openAnime(anime: Anime) {
     setSearchOpen(false);
-    setDetailLoading(true);
-    setSelected({ ...anime, episodes: [], related: [] });
-    try {
-      const response = await fetch(`/api/anime/${encodeURIComponent(anime.id)}`);
-      if (response.ok) setSelected({ ...anime, ...await response.json() });
-    } finally { setDetailLoading(false); }
+    const query = new URLSearchParams({ name: anime.name, image: anime.image || "", year: anime.year || "", status: anime.status || "" });
+    router.push(`/anime/${encodeURIComponent(anime.id)}?${query}`);
   }
 
   async function loadRemoteLibrary() {
@@ -250,24 +227,25 @@ export default function Home() {
     const watched = video.duration > 0 && video.currentTime / video.duration >= .9;
     const value = { position: watched ? 0 : video.currentTime, duration: video.duration || 0, updatedAt: new Date().toISOString() };
     localStorage.setItem(`anime-cloud-progress:${player.episode.id}`, JSON.stringify(value));
-    if (user) fetch(`/api/episodes/${encodeURIComponent(player.episode.id)}/progress`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ animeId: player.anime.id, episodeNumber: player.episodeNumber, position: video.currentTime, duration: video.duration || 0, watched }) }).catch(() => undefined);
+    if (user) void fetch(`/api/episodes/${encodeURIComponent(player.episode.id)}/progress`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ animeId: player.anime.id, episodeNumber: player.episodeNumber, position: video.currentTime, duration: video.duration || 0, watched }) }).then(async (response) => {
+      if (!watched || !response.ok || homeAniListSynced.current.has(player.episode.id)) return;
+      homeAniListSynced.current.add(player.episode.id);
+      fetch("/api/library/sync", { method: "POST" }).catch(() => undefined);
+      const syncResponse = await fetch("/api/anilist/progress", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ animeId: player.anime.id, animeName: player.anime.name }) }).catch(() => null);
+      if (syncResponse?.ok) setNotice("Episode completed and AniList progress updated automatically.");
+      else {
+        homeAniListSynced.current.delete(player.episode.id);
+        if (syncResponse && syncResponse.status !== 400) setNotice("Episode completed, but AniList could not be updated.");
+      }
+    }).catch(() => undefined);
   }
+
+  if (loading) return <main><SiteHeader active="home" /><PageLoading label="Loading Home" /></main>;
+  if (loadError || !hero) return <main><SiteHeader active="home" /><section className="route-loading" role="alert"><strong>Unable to load Home</strong><small>{loadError || "The live catalog returned no featured titles."}</small><button className="primary-button" onClick={() => window.location.reload()}>Try again</button></section></main>;
 
   return (
     <main>
-      <header className="site-header">
-        <a className="brand" href="#top" aria-label="Anime Cloud home"><span className="brand-mark">AC</span><span>Anime Cloud</span></a>
-        <nav aria-label="Primary navigation">
-          <a className="active" href="#top">Home</a>
-          <a href="#trending">Discover</a>
-          <a href="#schedule">Schedule</a>
-        </nav>
-        <div className="header-actions">
-          <button className="icon-button" onClick={() => setSearchOpen(true)} aria-label="Search">⌕</button>
-          <button className="library-button" onClick={() => setLibraryOpen(true)}>My List <span>{library.length}</span></button>
-          <button className="account-button" onClick={() => setAccountOpen(true)}>{user ? initials(user.username) : "Sign in"}</button>
-        </div>
-      </header>
+      <SiteHeader active="home" onSearch={() => setSearchOpen(true)} />
 
       <section className="hero" id="top" style={posterStyle(hero, 0)}>
         <div className="hero-orb" aria-hidden="true" />
@@ -287,14 +265,19 @@ export default function Home() {
 
       <div className="content-shell">
         <section id="trending" className="content-section">
-          <div className="section-heading"><div><span className="section-kicker">Most watched</span><h2>Trending now</h2></div><button onClick={() => setSearchOpen(true)}>Browse all <span>→</span></button></div>
-          <div className={`poster-grid ${loading ? "is-loading" : ""}`}>
+          <div className="section-heading"><div><span className="section-kicker">Most watched</span><h2>Trending now</h2></div><button onClick={() => router.push("/discover")}>Browse all <span>→</span></button></div>
+          <div className="poster-grid">
             {home.featured.slice(0, 6).map((anime, index) => <PosterCard key={`${anime.id}-${index}`} anime={anime} index={index} onOpen={openAnime} />)}
           </div>
         </section>
 
+        <section className="content-section newly-added-section">
+          <div className="section-heading"><div><span className="section-kicker">Just added</span><h2>Newly added anime</h2></div><button onClick={() => router.push("/discover")}>Explore catalog <span>→</span></button></div>
+          <div className="poster-grid">{home.newAnime.slice(0, 6).map((anime, index) => <PosterCard key={`new-${anime.id}-${index}`} anime={anime} index={index + 6} onOpen={openAnime} />)}</div>
+        </section>
+
         <section className="content-section latest-section">
-          <div className="section-heading"><div><span className="section-kicker">Fresh arrivals</span><h2>Latest episodes</h2></div><span className="live-pill"><i /> Updated live</span></div>
+          <div className="section-heading"><div><span className="section-kicker">Fresh arrivals</span><h2>Newly added episodes</h2></div><span className="live-pill"><i /> Updated live</span></div>
           <div className="episode-grid">
             {home.latest.slice(0, 4).map((anime, index) => (
               <button key={`${anime.id}-${index}`} className="episode-card" onClick={() => openAnime(anime)}>
@@ -331,12 +314,6 @@ export default function Home() {
         </div>
       </div>}
 
-      {libraryOpen && <div className="overlay drawer-overlay" role="dialog" aria-modal="true" aria-label="My List" onMouseDown={(event) => event.currentTarget === event.target && setLibraryOpen(false)}>
-        <aside className="library-drawer"><div className="drawer-heading"><div><span className="section-kicker">Saved locally</span><h2>My List</h2></div><button onClick={() => setLibraryOpen(false)}>×</button></div>
-          {library.length ? <div className="library-list">{library.map((anime, index) => <div key={anime.id}><button onClick={() => openAnime(anime)}><span className="result-art" style={posterStyle(anime, index)}>{initials(anime.name)}</span><span><strong>{anime.name}</strong><small>{anime.year || "Ready to watch"}</small></span></button><button className="remove-button" onClick={() => toggleLibrary(anime)} aria-label={`Remove ${anime.name}`}>×</button></div>)}</div> : <div className="empty-state"><span>◇</span><h3>Your list is waiting</h3><p>Save anything you want to watch next. It stays on this device.</p><button className="primary-button" onClick={() => { setLibraryOpen(false); setSearchOpen(true); }}>Find anime</button></div>}
-        </aside>
-      </div>}
-
       {accountOpen && <div className="overlay account-overlay" role="dialog" aria-modal="true" aria-label="Anime Cloud account" onMouseDown={(event) => event.currentTarget === event.target && setAccountOpen(false)}>
         <div className="account-panel"><button className="detail-close" onClick={() => setAccountOpen(false)} aria-label="Close account">×</button>
           {user ? <div className="account-signed-in"><span className="account-avatar">{initials(user.username)}</span><span className="section-kicker">Anime Cloud account</span><h2>Welcome back,<br />{user.username}.</h2><p>{user.email}</p><div className="account-security"><strong>Secure session</strong><span>Your legacy account token stays encrypted in an HTTP-only cookie and is never exposed to browser storage.</span></div><div className="integration-row"><div><strong>Legacy cloud</strong><span>Compatible library backup</span></div><button onClick={() => syncService("legacy")}>Sync</button></div><div className="integration-row"><div><strong>AniList</strong><span>{aniList.connected ? `Connected as ${aniList.viewer?.name || "viewer"}` : "Not connected"}</span></div>{aniList.connected ? <button onClick={() => syncService("anilist")}>Sync</button> : <a href="/api/anilist/connect">Connect</a>}</div>{authMessage && <div className="auth-message" role="status">{authMessage}</div>}<button className="secondary-button" onClick={logout}>Sign out</button></div>
@@ -352,7 +329,7 @@ export default function Home() {
           <div className="detail-hero" style={posterStyle(selected, 2)}><span className="detail-monogram">{initials(selected.name)}</span></div>
           <div className="detail-content"><span className="section-kicker">{selected.status || "Anime series"}</span><h2>{selected.name}</h2><p className="detail-meta">{selected.year || "—"} · {selected.genres || "Action / Adventure"} {selected.rank ? `· Rank #${selected.rank}` : ""}</p><p className="detail-story">{selected.story || "Story details are loading from the Anime Cloud catalog."}</p>
             <div className="hero-actions"><button className="primary-button" disabled={!selected.episodes.length} onClick={() => selected.episodes[0] && playEpisode(selected.episodes[0])}>▶ {selected.episodes.length ? "Play latest" : "Coming soon"}</button><button className="secondary-button" onClick={() => toggleLibrary(selected)}>{library.some((item) => item.id === selected.id) ? "✓ In My List" : "+ My List"}</button></div>
-            <div className="episode-list-heading"><h3>Episodes</h3><span>{detailLoading ? "Loading…" : `${selected.episodes.length} available`}</span></div>
+            <div className="episode-list-heading"><h3>Episodes</h3><span>{selected.episodes.length} available</span></div>
             <div className="episode-list">{selected.episodes.slice(0, 18).map((episode, index) => <button onClick={() => playEpisode(episode)} key={episode.id}><span>{String(selected.episodes.length - index).padStart(2, "0")}</span><strong>{episode.name}</strong>{episode.filler && <small>Filler</small>}<b>▶</b></button>)}</div>
           </div>
         </div>

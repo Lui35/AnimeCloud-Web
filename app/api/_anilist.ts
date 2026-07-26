@@ -13,5 +13,6 @@ export function normalizeTitle(value: string) {
 
 export const viewerQuery = `query { Viewer { id name } }`;
 export const collectionQuery = `query ($userId: Int!) { MediaListCollection(userId: $userId, type: ANIME) { lists { entries { status progress updatedAt media { id seasonYear episodes title { romaji english native } } } } } }`;
+export const mediaForProgressQuery = `query ($search: String!) { Media(search: $search, type: ANIME) { id mediaListEntry { status progress } } }`;
 export const saveEntryMutation = `mutation ($mediaId: Int!, $status: MediaListStatus!, $progress: Int) { SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress) { id status progress } }`;
 

@@ -7,10 +7,11 @@ export async function POST(request: Request) {
   try {
     const payload = await accountCommand("userLogin", { email: body.email, password: body.password });
     const row = rows(payload)[0] || payload;
-    const userID = String(row.userid ?? row.userID ?? "");
-    const uniqID = String(row.uniqid ?? row.uniqID ?? "");
+    if (String(row.status ?? "").toLowerCase() === "false") return corsJson({ message: String(row.message ?? "The email or password is incorrect.") }, { status: 401 });
+    const userID = String(row.userid ?? row.userID ?? row.userId ?? row.id ?? row.ID ?? "");
+    const uniqID = String(row.uniqid ?? row.uniqID ?? row.uniqId ?? row.uniqueID ?? row.uniqueId ?? row.token ?? "");
     if (!userID || !uniqID) return corsJson({ message: String(row.message ?? "The email or password is incorrect.") }, { status: 401 });
-    const session = { userID, uniqID, username: String(row.username ?? body.email.split("@")[0]), email: String(row.email ?? body.email), profilePicture: String(row.profilePicture ?? ""), subscribe: String(row.subscribe ?? "") };
+    const session = { userID, uniqID, username: String(row.username ?? row.userName ?? row.name ?? body.email.split("@")[0]), email: String(row.email ?? row.mail ?? body.email), profilePicture: String(row.profilePicture ?? row.image ?? ""), subscribe: String(row.subscribe ?? row.subscription ?? "") };
     await setSession(session);
     return corsJson({ user: { username: session.username, email: session.email, profilePicture: session.profilePicture, subscribe: session.subscribe } }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {

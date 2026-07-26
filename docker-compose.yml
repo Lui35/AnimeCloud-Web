@@ -17,9 +17,6 @@ services:
       LEGACY_BACKUP_URL_TEMPLATE: ${LEGACY_BACKUP_URL_TEMPLATE:-https://animecloudapp.com/usersBackup/{userID}-{uniqID}.sqlite}
       LEGACY_PLAYBACK_PASSWORD: ${LEGACY_PLAYBACK_PASSWORD:-}
       SESSION_SECRET: ${SESSION_SECRET:-}
-      ANILIST_CLIENT_ID: ${ANILIST_CLIENT_ID:-}
-      ANILIST_CLIENT_SECRET: ${ANILIST_CLIENT_SECRET:-}
-      ANILIST_REDIRECT_URI: ${ANILIST_REDIRECT_URI:-http://localhost:3000/api/anilist/callback}
     volumes:
       - anime-cloud-data:/app/data
 

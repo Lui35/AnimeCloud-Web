@@ -48,6 +48,13 @@ function database() {
     viewer_name TEXT,
     connected_at INTEGER NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS anilist_oauth_configs (
+    user_id TEXT PRIMARY KEY,
+    client_id TEXT NOT NULL,
+    encrypted_client_secret TEXT NOT NULL,
+    redirect_uri TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
 `);
   instance = db;
   return db;
@@ -116,6 +123,20 @@ export function getAniListConnection(userID: string) {
 
 export function removeAniListConnection(userID: string) {
   database().prepare("DELETE FROM anilist_connections WHERE user_id = ?").run(userID);
+}
+
+export function saveAniListOAuthConfig(userID: string, clientID: string, encryptedClientSecret: string, redirectURI: string) {
+  database().prepare(`INSERT INTO anilist_oauth_configs (user_id, client_id, encrypted_client_secret, redirect_uri, updated_at) VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET client_id=excluded.client_id, encrypted_client_secret=excluded.encrypted_client_secret, redirect_uri=excluded.redirect_uri, updated_at=excluded.updated_at`)
+    .run(userID, clientID, encryptedClientSecret, redirectURI, Date.now());
+}
+
+export function getAniListOAuthConfig(userID: string) {
+  return database().prepare("SELECT * FROM anilist_oauth_configs WHERE user_id = ?").get(userID) as Record<string, unknown> | undefined;
+}
+
+export function removeAniListOAuthConfig(userID: string) {
+  database().prepare("DELETE FROM anilist_oauth_configs WHERE user_id = ?").run(userID);
 }
 
 export function transaction<T>(run: () => T) {

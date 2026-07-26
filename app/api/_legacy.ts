@@ -55,13 +55,15 @@ export function rows(payload: Record<string, unknown>, key = "result") {
 }
 
 export function anime(row: RawRecord) {
+  const rawDay = String(row.day ?? "");
+  const day = ["", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][Number(rawDay)] || rawDay;
   return {
     id: String(row.id ?? row.animeID ?? ""),
     name: String(row.name ?? row.animeName ?? "Untitled"),
     image: String(row.image ?? row.image300 ?? row.image170 ?? ""),
     status: String(row.status ?? ""),
     year: String(row.year ?? ""),
-    day: String(row.day ?? ""),
+    day,
     epName: String(row.epName ?? ""),
     keywords: String(row.keywords ?? ""),
   };
@@ -69,6 +71,6 @@ export function anime(row: RawRecord) {
 
 export function corsJson(data: unknown, init: ResponseInit = {}) {
   const headers = new Headers(init.headers);
-  if (!headers.has("Cache-Control")) headers.set("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
+  if (!headers.has("Cache-Control")) headers.set("Cache-Control", init.status && init.status >= 400 ? "no-store" : "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
   return Response.json(data, { ...init, headers });
 }

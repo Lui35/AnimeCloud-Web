@@ -35,8 +35,7 @@ openssl rand -base64 48
 ```
 
 4. Set `LEGACY_PLAYBACK_PASSWORD` if playback should be enabled.
-5. Create an AniList OAuth client and set its three variables if AniList sync should be enabled.
-6. Start the application:
+5. Start the application:
 
 ```bash
 npm install
@@ -87,11 +86,9 @@ Stop Compose with `docker compose down`. Add `-v` only when you intentionally wa
 | `LEGACY_PLAYBACK_PASSWORD` | Server-only RNCryptor playback password |
 | `SESSION_SECRET` | Encrypts legacy account identifiers in the HTTP-only session cookie |
 | `DATABASE_PATH` | SQLite database used for middleware-owned features |
-| `ANILIST_CLIENT_ID` | AniList OAuth application ID |
-| `ANILIST_CLIENT_SECRET` | AniList OAuth secret |
-| `ANILIST_REDIRECT_URI` | AniList OAuth callback URL |
-
 Never prefix secrets with `NEXT_PUBLIC_`. The browser only calls this project's `/api/*` routes.
+
+AniList OAuth credentials are configured per signed-in account on the website’s Account page. The client secret is encrypted in the server-side database and is never returned to the browser. Register the callback URL shown on that page in AniList Developer Settings before connecting.
 
 ## Backend routes
 
@@ -114,6 +111,7 @@ PUT  /api/episodes/:id/progress
 POST /api/library/sync
 GET  /api/anilist/connect
 GET  /api/anilist/callback
+GET|POST|DELETE /api/anilist/config
 GET|DELETE /api/anilist/status
 POST /api/anilist/sync
 POST /api/recommendations
