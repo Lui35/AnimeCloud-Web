@@ -38,6 +38,18 @@ export async function accountCommand(command: string, fields: Record<string, str
   return response.json() as Promise<Record<string, unknown>>;
 }
 
+export async function accountUpload(command: string, fields: Record<string, string>, bytes: Uint8Array, fileField: string, filename: string, contentType: string) {
+  const form = new FormData();
+  form.set("command", command);
+  Object.entries(fields).forEach(([name, value]) => form.set(name, value));
+  const body = new Uint8Array(bytes.byteLength);
+  body.set(bytes);
+  form.set(fileField, new Blob([body.buffer], { type: contentType }), filename);
+  const response = await fetch(ACCOUNT_URL, { method: "POST", body: form, signal: AbortSignal.timeout(30_000) });
+  if (!response.ok) throw new Error(`Legacy upload returned ${response.status}`);
+  return response.json() as Promise<Record<string, unknown>>;
+}
+
 export function rows(payload: Record<string, unknown>, key = "result") {
   return Array.isArray(payload[key]) ? payload[key] as RawRecord[] : [];
 }
