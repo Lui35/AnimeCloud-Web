@@ -22,8 +22,18 @@ A standalone Next.js web client and backend proxy for the recovered Anime Cloud 
 ## Local setup
 
 1. Install Node.js 22 or newer.
-2. Copy `.env.example` to `.env.local`.
-3. Set a random `SESSION_SECRET` with at least 32 characters.
+2. Create your local configuration:
+
+```bash
+cp .env.example .env.local
+```
+
+3. Generate a random session secret and paste it into `.env.local`:
+
+```bash
+openssl rand -base64 48
+```
+
 4. Set `LEGACY_PLAYBACK_PASSWORD` if playback should be enabled.
 5. Create an AniList OAuth client and set its three variables if AniList sync should be enabled.
 6. Start the application:
@@ -34,6 +44,38 @@ npm run dev
 ```
 
 Open `http://localhost:3000`.
+
+For a production-mode local run:
+
+```bash
+npm run build
+npm start
+```
+
+## Docker
+
+Create `.env.local` as described above, then run:
+
+```bash
+docker compose --env-file .env.local up --build
+```
+
+Open `http://localhost:3000`. The Compose configuration stores SQLite data in the named `anime-cloud-data` volume, so accounts, libraries, progress and synchronization state survive container recreation.
+
+To build and run without Compose:
+
+```bash
+docker build -t anime-cloud-web .
+docker run --rm \
+  --name anime-cloud-web \
+  -p 3000:3000 \
+  --env-file .env.local \
+  -e DATABASE_PATH=/app/data/anime-cloud.sqlite \
+  -v anime-cloud-data:/app/data \
+  anime-cloud-web
+```
+
+Stop Compose with `docker compose down`. Add `-v` only when you intentionally want to delete the persistent database volume. Use the same `--env-file .env.local` option for other Compose commands when they need your configured values.
 
 ## Environment variables
 

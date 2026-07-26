@@ -1,0 +1,27 @@
+services:
+  anime-cloud-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: anime-cloud-web:local
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      DATABASE_PATH: /app/data/anime-cloud.sqlite
+      LEGACY_CATALOG_URL: ${LEGACY_CATALOG_URL:-https://khkhkhkh.com/animecp/animeapi65/}
+      LEGACY_ACCOUNT_URL: ${LEGACY_ACCOUNT_URL:-https://animecloudapp.com/aanimeApp65/}
+      LEGACY_BACKUP_URL_TEMPLATE: ${LEGACY_BACKUP_URL_TEMPLATE:-https://animecloudapp.com/usersBackup/{userID}-{uniqID}.sqlite}
+      LEGACY_PLAYBACK_PASSWORD: ${LEGACY_PLAYBACK_PASSWORD:-}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      ANILIST_CLIENT_ID: ${ANILIST_CLIENT_ID:-}
+      ANILIST_CLIENT_SECRET: ${ANILIST_CLIENT_SECRET:-}
+      ANILIST_REDIRECT_URI: ${ANILIST_REDIRECT_URI:-http://localhost:3000/api/anilist/callback}
+    volumes:
+      - anime-cloud-data:/app/data
+
+volumes:
+  anime-cloud-data:
