@@ -4,6 +4,7 @@ import { CSSProperties, FormEvent, useEffect, useMemo, useRef, useState } from "
 import { useRouter } from "next/navigation";
 import { SiteHeader } from "./_components/site-header";
 import { PageLoading } from "./_components/page-loading";
+import { MpvSetupNote, MpvStopButton, useMpvPlayer } from "./_components/mpv-status";
 
 type Anime = {
   id: string;
@@ -45,8 +46,6 @@ type User = { username: string; email: string; profilePicture?: string; subscrib
 const EMPTY_HOME: HomePayload = { featured: [], newAnime: [], latest: [], schedule: [] };
 
 const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const todayName = days[new Date().getDay()];
-
 function initials(name: string) {
   return name.split(/\s+/).slice(0, 2).map((word) => word[0]).join("");
 }
@@ -98,8 +97,11 @@ export default function Home() {
   const [recommendPrompt, setRecommendPrompt] = useState("");
   const [recommendations, setRecommendations] = useState<Anime[]>([]);
   const [recommendBusy, setRecommendBusy] = useState(false);
+  const [todayName, setTodayName] = useState("");
+  const mpv = useMpvPlayer();
 
   useEffect(() => {
+    const todayTimer = window.setTimeout(() => setTodayName(days[new Date().getDay()]), 0);
     const homeLoadStarted = Date.now();
     const saved = localStorage.getItem("anime-cloud-library");
     if (saved) {
@@ -111,6 +113,7 @@ export default function Home() {
       .catch(() => setLoadError("Anime Cloud could not load the home feed."))
       .finally(() => window.setTimeout(() => setLoading(false), Math.max(0, 350 - (Date.now() - homeLoadStarted))));
     fetch("/api/me").then((response) => response.json()).then((data: { user: User | null }) => { setUser(data.user); if (data.user) { loadRemoteLibrary(); refreshAniList(); } }).catch(() => undefined);
+    return () => window.clearTimeout(todayTimer);
   }, []);
 
   useEffect(() => {
@@ -130,7 +133,7 @@ export default function Home() {
   }, [query, home]);
 
   const hero = home.featured[0];
-  const scheduledToday = useMemo(() => home.schedule.filter((anime) => anime.day === todayName), [home.schedule]);
+  const scheduledToday = useMemo(() => home.schedule.filter((anime) => anime.day === todayName), [home.schedule, todayName]);
 
   async function openAnime(anime: Anime) {
     setSearchOpen(false);
@@ -162,13 +165,28 @@ export default function Home() {
   }
 
   async function playEpisode(episode: Episode) {
-    setNotice("Preparing secure playback…");
+    if (!selected) return;
+    const saved = localStorage.getItem(`anime-cloud-progress:${episode.id}`);
+    let position = 0;
+    if (saved) try { position = Number((JSON.parse(saved) as { position?: number }).position) || 0; } catch { /* ignore invalid local progress */ }
+    if (mpv.enabled && mpv.status?.mpv && mpv.status.anime4k) {
+      setNotice("Starting MPV with Anime4K…");
+      const native = await fetch("/api/player/mpv", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ episodeId: episode.id, animeId: selected.id, episodeNumber: Number(episode.name.match(/\d+/)?.[0] || 0), title: `${selected.name} · ${episode.name}`, position }) }).catch(() => null);
+      if (native?.ok) {
+        mpv.markActive();
+        setSelected(null);
+        setNotice("Opened in MPV with Mode A. Use Ctrl+1–6 to switch modes or Ctrl+0 to disable Anime4K.");
+        window.setTimeout(() => setNotice(""), 4200);
+        return;
+      }
+    }
+
+    setNotice("Preparing secure browser playback…");
     try {
       const response = await fetch(`/api/episodes/${encodeURIComponent(episode.id)}/source`, { method: "POST" });
       const data = await response.json() as { url?: string; message?: string };
       if (!response.ok || !data.url) throw new Error(data.message || "Playback is not available yet.");
       const episodeNumber = Number(episode.name.match(/\d+/)?.[0] || 0);
-      if (!selected) throw new Error("Anime details are unavailable.");
       setPlayer({ episode, anime: selected, url: data.url, episodeNumber });
       setSelected(null);
       setNotice("");
@@ -328,7 +346,7 @@ export default function Home() {
           <button className="detail-close" onClick={() => setSelected(null)} aria-label="Close details">×</button>
           <div className="detail-hero" style={posterStyle(selected, 2)}><span className="detail-monogram">{initials(selected.name)}</span></div>
           <div className="detail-content"><span className="section-kicker">{selected.status || "Anime series"}</span><h2>{selected.name}</h2><p className="detail-meta">{selected.year || "—"} · {selected.genres || "Action / Adventure"} {selected.rank ? `· Rank #${selected.rank}` : ""}</p><p className="detail-story">{selected.story || "Story details are loading from the Anime Cloud catalog."}</p>
-            <div className="hero-actions"><button className="primary-button" disabled={!selected.episodes.length} onClick={() => selected.episodes[0] && playEpisode(selected.episodes[0])}>▶ {selected.episodes.length ? "Play latest" : "Coming soon"}</button><button className="secondary-button" onClick={() => toggleLibrary(selected)}>{library.some((item) => item.id === selected.id) ? "✓ In My List" : "+ My List"}</button></div>
+            <MpvSetupNote status={mpv.status} enabled={mpv.enabled} onEnabledChange={mpv.setEnabled} /><div className="hero-actions"><button className="primary-button" disabled={!selected.episodes.length} onClick={() => selected.episodes[0] && playEpisode(selected.episodes[0])}>▶ {selected.episodes.length ? "Play latest" : "Coming soon"}</button><button className="secondary-button" onClick={() => toggleLibrary(selected)}>{library.some((item) => item.id === selected.id) ? "✓ In My List" : "+ My List"}</button></div>
             <div className="episode-list-heading"><h3>Episodes</h3><span>{selected.episodes.length} available</span></div>
             <div className="episode-list">{selected.episodes.slice(0, 18).map((episode, index) => <button onClick={() => playEpisode(episode)} key={episode.id}><span>{String(selected.episodes.length - index).padStart(2, "0")}</span><strong>{episode.name}</strong>{episode.filler && <small>Filler</small>}<b>▶</b></button>)}</div>
           </div>
@@ -338,6 +356,7 @@ export default function Home() {
       {player && <div className="overlay player-overlay" role="dialog" aria-modal="true" aria-label={`Playing ${player.episode.name}`}><div className="player-shell"><div className="player-heading"><div><span className="section-kicker">Now playing</span><h2>{player.anime.name}</h2><p>{player.episode.name}</p></div><button onClick={() => setPlayer(null)} aria-label="Close player">×</button></div><video src={player.url} controls autoPlay playsInline onLoadedMetadata={(event) => { const saved = localStorage.getItem(`anime-cloud-progress:${player.episode.id}`); if (saved) { try { const value = JSON.parse(saved) as { position?: number }; if (value.position && value.position > 3) event.currentTarget.currentTime = value.position; } catch { /* ignore */ } } }} onTimeUpdate={(event) => saveProgress(event.currentTarget)} onPause={(event) => saveProgress(event.currentTarget, true)} onEnded={(event) => saveProgress(event.currentTarget, true)} /><div className="player-note"><span>Progress saves automatically</span><span>Picture in Picture and fullscreen are available from the player controls.</span></div></div></div>}
 
       {notice && <div className="toast" role="status">{notice}</div>}
+      <MpvStopButton active={mpv.enabled && Boolean(mpv.status?.mpv)} onStop={() => { void mpv.stop().then((stopped) => setNotice(stopped === null ? "MPV could not be stopped." : stopped ? "MPV stopped." : "No MPV process was running.")); }} />
       {scheduledToday.length > 0 && <div className="today-indicator" aria-hidden="true">{scheduledToday.length} release{scheduledToday.length > 1 ? "s" : ""} today</div>}
     </main>
   );

@@ -16,6 +16,7 @@ A standalone Next.js web client and backend proxy for the recovered Anime Cloud 
 - AniList OAuth, first-import protection and two-way status/progress sync
 - Catalog-grounded recommendation matching
 - In-page video playback, resume, completion and watched-state tracking
+- Local MPV playback with Anime4K GLSL upscaling and browser fallback
 - Rate limiting, input validation and security headers
 - Social preview metadata and artwork
 
@@ -43,6 +44,21 @@ npm run dev
 ```
 
 Open `http://localhost:3000`.
+
+### Optional MPV + Anime4K playback
+
+Browser playback is the default. When MPV and the complete high-end Anime4K shader set are detected, the episode panel shows a saved **Use MPV** switch. Turn it on to use native playback or leave it off to use the website player. If native launch fails, playback falls back to the browser.
+
+1. Install [MPV](https://mpv.io/) or [mpv.net](https://github.com/mpvnet-player/mpv.net).
+2. Download the Anime4K v4.0.1 [Windows high-end bundle](https://github.com/Tama47/Anime4K/releases/download/v4.0.1/GLSL_Windows_High-end.zip).
+3. Extract its `shaders` folder and set `ANIME4K_SHADER_DIR` to that folder. For standard MPV, `%APPDATA%\mpv\shaders` is detected automatically.
+4. Set `MPV_PATH` to the full path of `mpv.exe` or `mpvnet.exe`, then restart the Next.js server.
+
+AnimeCloud starts each episode in high-end Mode A and supplies its own per-launch bindings, so it does not depend on the user's `input.conf` or `mpv.conf`. With the MPV window focused, use `Ctrl+1`, `Ctrl+2`, or `Ctrl+3` for A/B/C; `Ctrl+4`, `Ctrl+5`, or `Ctrl+6` for A+A/B+B/C+A; and `Ctrl+0` to disable Anime4K. Every change displays on screen for three seconds. These mappings match the [official Anime4K high-end template](https://github.com/bloc97/Anime4K/blob/master/md/Template/GLSL_Windows_High-end/input.conf).
+
+Resume progress flows in both directions: the website passes its saved position to MPV, and MPV reports its current position back to local storage and signed-in account progress while it runs and when it closes. The persistent **Stop MPV** button is a recovery control that closes every process using the configured executable, including an orphan left by a server restart.
+
+This integration is intentionally local: a hosted Next.js server cannot open a native MPV window on a visitor's computer. On Windows, start Next.js from the signed-in desktop session (for example, a normal or minimized terminal); a server running as a service or on a hidden desktop cannot display MPV on the user's desktop. Hosted deployments continue to use the browser player.
 
 For a production-mode local run:
 
@@ -86,6 +102,10 @@ Stop Compose with `docker compose down`. Add `-v` only when you intentionally wa
 | `LEGACY_PLAYBACK_PASSWORD` | Server-only RNCryptor playback password |
 | `SESSION_SECRET` | Encrypts legacy account identifiers in the HTTP-only session cookie |
 | `DATABASE_PATH` | SQLite database used for middleware-owned features |
+| `MPV_PATH` | Optional path to `mpv.exe` or `mpvnet.exe`; defaults to `mpv` |
+| `ANIME4K_SHADER_DIR` | Optional directory containing the complete high-end Anime4K GLSL set |
+| `MPV_TLS_VERIFY` | Set to `no` only for a video host whose TLS certificate MPV cannot validate |
+
 Never prefix secrets with `NEXT_PUBLIC_`. The browser only calls this project's `/api/*` routes.
 
 AniList OAuth credentials are configured per signed-in account on the website’s Account page. The client secret is encrypted in the server-side database and is never returned to the browser. Register the callback URL shown on that page in AniList Developer Settings before connecting.
@@ -115,6 +135,7 @@ GET|POST|DELETE /api/anilist/config
 GET|DELETE /api/anilist/status
 POST /api/anilist/sync
 POST /api/recommendations
+GET|POST|DELETE /api/player/mpv
 ```
 
 The legacy gateways remain irregular form-encoded PHP endpoints. `app/api/_legacy.ts` is the normalization boundary; the React client only receives stable JSON. The middleware database stores only web-owned state and synchronization metadata; the existing services remain authoritative for their original features.
