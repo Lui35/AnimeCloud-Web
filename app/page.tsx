@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { SiteHeader } from "./_components/site-header";
 import { PageLoading } from "./_components/page-loading";
 import { MpvSetupNote, MpvStopButton, useMpvPlayer } from "./_components/mpv-status";
+import { Anime4KPlayer } from "./_components/anime4k-player";
 
 type Anime = {
   id: string;
@@ -353,7 +354,7 @@ export default function Home() {
         </div>
       </div>}
 
-      {player && <div className="overlay player-overlay" role="dialog" aria-modal="true" aria-label={`Playing ${player.episode.name}`}><div className="player-shell"><div className="player-heading"><div><span className="section-kicker">Now playing</span><h2>{player.anime.name}</h2><p>{player.episode.name}</p></div><button onClick={() => setPlayer(null)} aria-label="Close player">×</button></div><video src={player.url} controls autoPlay playsInline onLoadedMetadata={(event) => { const saved = localStorage.getItem(`anime-cloud-progress:${player.episode.id}`); if (saved) { try { const value = JSON.parse(saved) as { position?: number }; if (value.position && value.position > 3) event.currentTarget.currentTime = value.position; } catch { /* ignore */ } } }} onTimeUpdate={(event) => saveProgress(event.currentTarget)} onPause={(event) => saveProgress(event.currentTarget, true)} onEnded={(event) => saveProgress(event.currentTarget, true)} /><div className="player-note"><span>Progress saves automatically</span><span>Picture in Picture and fullscreen are available from the player controls.</span></div></div></div>}
+      {player && <div className="overlay player-overlay" role="dialog" aria-modal="true" aria-label={`Playing ${player.episode.name}`}><div className="player-shell"><div className="player-heading"><div><span className="section-kicker">Now playing</span><h2>{player.anime.name}</h2><p>{player.episode.name}</p></div><button onClick={() => setPlayer(null)} aria-label="Close player">×</button></div><Anime4KPlayer src={player.url} episodeId={player.episode.id} autoPlay playsInline onLoadedMetadata={(video) => { const saved = localStorage.getItem(`anime-cloud-progress:${player.episode.id}`); if (saved) { try { const value = JSON.parse(saved) as { position?: number }; if (value.position && value.position > 3) video.currentTime = value.position; } catch { /* ignore */ } } }} onTimeUpdate={(video) => saveProgress(video)} onPause={(video) => saveProgress(video, true)} onEnded={(video) => saveProgress(video, true)} /><div className="player-note"><span>Progress saves automatically</span><span>Anime4K modes run on your GPU and are remembered on this device.</span></div></div></div>}
 
       {notice && <div className="toast" role="status">{notice}</div>}
       <MpvStopButton active={mpv.enabled && Boolean(mpv.status?.mpv)} onStop={() => { void mpv.stop().then((stopped) => setNotice(stopped === null ? "MPV could not be stopped." : stopped ? "MPV stopped." : "No MPV process was running.")); }} />

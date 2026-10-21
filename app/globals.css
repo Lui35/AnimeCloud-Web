@@ -203,6 +203,31 @@ footer p { margin-right: auto; color: #9e92a4; }
 .player-heading p { color: var(--muted); font-size: 9px; margin: 0; }
 .player-heading button { width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 50%; background: rgba(255,255,255,.05); font-size: 22px; cursor: pointer; }
 .player-shell video { width: 100%; max-height: 72vh; display: block; border-radius: 18px; background: black; box-shadow: 0 30px 100px rgba(0,0,0,.6); }
+.anime4k-player { position: relative; overflow: hidden; border-radius: 18px; background: #000; box-shadow: 0 30px 100px rgba(0,0,0,.6); }
+.anime4k-player video { box-shadow: none; border-radius: 0; }
+.anime4k-player canvas { width: 100%; max-height: 72vh; display: none; object-fit: contain; background: #000; }
+.anime4k-player.anime4k-active video { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.anime4k-player.anime4k-active canvas { display: block; }
+.anime4k-player:fullscreen { width: 100vw; height: 100vh; border-radius: 0; box-shadow: none; }
+.anime4k-player:fullscreen canvas,
+.anime4k-player:fullscreen:not(.anime4k-active) video { width: 100%; height: 100%; max-height: none; object-fit: contain; }
+.anime4k-modes { position: absolute; z-index: 3; top: 12px; right: 12px; display: flex; max-width: calc(100% - 24px); align-items: center; gap: 4px; padding: 5px; overflow-x: auto; border: 1px solid rgba(255,255,255,.16); border-radius: 10px; background: rgba(10,8,13,.86); backdrop-filter: blur(12px); scrollbar-width: none; }
+.anime4k-modes span { padding: 0 6px; color: #c9becd; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+.anime4k-modes button { min-width: 32px; height: 28px; border: 0; border-radius: 7px; background: transparent; color: #b4aab9; cursor: pointer; font-size: 10px; font-weight: 700; }
+.anime4k-modes button:hover,.anime4k-modes button:focus-visible { color: white; background: rgba(255,255,255,.1); }
+.anime4k-modes button.active { color: #1b111f; background: #c4a7ff; }
+.anime4k-controls { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 9px; padding: 28px 14px 12px; background: linear-gradient(transparent,rgba(0,0,0,.86)); color: white; }
+.anime4k-controls button { flex: 0 0 auto; min-width: 34px; height: 30px; border: 0; border-radius: 7px; background: rgba(255,255,255,.1); color: white; cursor: pointer; }
+.anime4k-controls span { flex: 0 0 auto; color: #ddd4e0; font-size: 9px; font-variant-numeric: tabular-nums; }
+.anime4k-controls input[type="range"] { min-width: 50px; accent-color: #c4a7ff; cursor: pointer; }
+.anime4k-seek { position: relative; display: flex; flex: 1 1 auto; align-items: center; height: 30px; }
+.anime4k-seek input { width: 100%; height: 5px; margin: 0; appearance: none; border-radius: 999px; background: linear-gradient(90deg,#c4a7ff var(--seek-progress),rgba(255,255,255,.28) var(--seek-progress)); transition: height .15s ease,filter .15s ease; }
+.anime4k-seek:hover input { height: 8px; filter: brightness(1.15); }
+.anime4k-seek input::-webkit-slider-thumb { width: 13px; height: 13px; appearance: none; border: 2px solid white; border-radius: 50%; background: #c4a7ff; box-shadow: 0 1px 8px rgba(0,0,0,.5); transition: transform .15s ease; }
+.anime4k-seek:hover input::-webkit-slider-thumb { transform: scale(1.2); }
+.anime4k-seek output { position: absolute; bottom: 32px; z-index: 4; padding: 5px 7px; transform: translateX(-50%); border-radius: 6px; background: rgba(8,6,11,.94); color: white; font-size: 9px; font-variant-numeric: tabular-nums; pointer-events: none; }
+.anime4k-controls .anime4k-volume { flex: 0 0 72px; width: 72px; }
+.anime4k-status { position: absolute; z-index: 2; left: 12px; top: 12px; max-width: min(460px,calc(100% - 250px)); padding: 8px 10px; border-radius: 8px; background: rgba(10,8,13,.78); color: #d9cfdd; font-size: 9px; pointer-events: none; }
 .player-note { display: flex; justify-content: space-between; gap: 16px; margin-top: 12px; color: #796f7e; font-size: 8px; }
 
 @keyframes fade-in { from { opacity: 0; } }

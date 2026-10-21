@@ -15,7 +15,7 @@ A standalone Next.js web client and backend proxy for the recovered Anime Cloud 
 - Safe legacy SQLite backup import and upload with deletion tombstones
 - AniList OAuth, first-import protection and two-way status/progress sync
 - Catalog-grounded recommendation matching
-- In-page video playback, resume, completion and watched-state tracking
+- In-page video playback with optional WebGPU Anime4K A/B/C and high-quality A+A/B+B/C+A modes, resume, completion and watched-state tracking
 - Local MPV playback with Anime4K GLSL upscaling and browser fallback
 - Rate limiting, input validation and security headers
 - Social preview metadata and artwork
@@ -44,6 +44,12 @@ npm run dev
 ```
 
 Open `http://localhost:3000`.
+
+### Browser Anime4K
+
+The website player has an **Anime4K Off / A / B / C / A+A / B+B / C+A** control in its top-right corner. Off uses the browser's normal video renderer. Every mode runs the matching official [`anime4k-webgpu`](https://github.com/Anime4KWebBoost/Anime4K-WebGPU) preset locally on the visitor's GPU; A+A, B+B, and C+A are the heavier high-quality presets. The last choice and player volume are remembered on that device, with new devices starting at 50% volume.
+
+Anime4K requires a WebGPU-capable browser and GPU. If WebGPU initialization fails, the player displays the reason and returns to normal playback. Because the recovered media host does not expose browser CORS headers, enhanced playback uses the same-origin byte-range route below; normal playback stays direct. Changing modes preserves the current time and play state.
 
 ### Optional MPV + Anime4K playback
 
@@ -117,6 +123,7 @@ GET  /api/home
 GET  /api/catalog?q=...
 GET  /api/anime/:id
 POST /api/episodes/:id/source
+GET  /api/episodes/:id/stream
 POST /api/auth/login
 POST /api/auth/logout
 POST /api/auth/signup

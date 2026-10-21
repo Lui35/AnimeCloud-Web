@@ -66,3 +66,36 @@ test("MPV integration is opt-in and launches a visible controllable Anime4K wind
   assert.match(home, /mpv\.enabled && mpv\.status\?\.mpv && mpv\.status\.anime4k/);
   assert.match(anime, /mpv\.enabled && mpv\.status\?\.mpv && mpv\.status\.anime4k/);
 });
+
+test("website player offers all Anime4K modes, fullscreen sizing, quiet saved volume, seek preview, and a ranged stream", async () => {
+  const [player, styles, stream, home, anime, packageJSON] = await Promise.all([
+    read("app/_components/anime4k-player.tsx"),
+    read("app/globals.css"),
+    read("app/api/episodes/[id]/stream/route.ts"),
+    read("app/page.tsx"),
+    read("app/anime/[id]/page.tsx"),
+    read("package.json").then(JSON.parse),
+  ]);
+  assert.equal(packageJSON.dependencies["anime4k-webgpu"], "^1.0.0");
+  assert.match(player, /import\("anime4k-webgpu"\)/);
+  assert.match(player, /"off" \| "a" \| "b" \| "c" \| "aa" \| "bb" \| "ca"/);
+  assert.match(player, /localStorage\.setItem\(STORAGE_KEY/);
+  assert.match(player, /ModeA/);
+  assert.match(player, /ModeB/);
+  assert.match(player, /ModeC/);
+  assert.match(player, /ModeAA/);
+  assert.match(player, /ModeBB/);
+  assert.match(player, /ModeCA/);
+  assert.match(player, /anime-cloud-player-volume-v1/);
+  assert.match(player, /useState\(\.5\)/);
+  assert.match(player, /seekPreview/);
+  assert.match(player, /requestVideoFrameCallback/);
+  assert.match(styles, /\.anime4k-player:fullscreen \{[^}]*width: 100vw;[^}]*height: 100vh;/);
+  assert.match(styles, /\.anime4k-player:fullscreen canvas,[\s\S]*object-fit: contain;/);
+  assert.match(player, /\/api\/episodes\/\$\{encodeURIComponent\(episodeId\)\}\/stream/);
+  assert.match(stream, /request\.headers\.get\("range"\)/);
+  assert.match(stream, /"content-range"/);
+  assert.match(stream, /Readable\.toWeb/);
+  assert.match(home, /<Anime4KPlayer/);
+  assert.match(anime, /<Anime4KPlayer/);
+});
