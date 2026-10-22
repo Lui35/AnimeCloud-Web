@@ -211,11 +211,24 @@ footer p { margin-right: auto; color: #9e92a4; }
 .anime4k-player:fullscreen { width: 100vw; height: 100vh; border-radius: 0; box-shadow: none; }
 .anime4k-player:fullscreen canvas,
 .anime4k-player:fullscreen:not(.anime4k-active) video { width: 100%; height: 100%; max-height: none; object-fit: contain; }
+.anime4k-player:fullscreen .anime4k-modes,
+.anime4k-player:fullscreen .anime4k-controls,
+.anime4k-player:fullscreen .anime4k-status { transition: opacity .18s ease, transform .18s ease; }
+.anime4k-player:fullscreen.anime4k-hud-hidden { cursor: none; }
+.anime4k-player:fullscreen.anime4k-hud-hidden .anime4k-modes,
+.anime4k-player:fullscreen.anime4k-hud-hidden .anime4k-controls,
+.anime4k-player:fullscreen.anime4k-hud-hidden .anime4k-status { opacity: 0; pointer-events: none; }
+.anime4k-player:fullscreen.anime4k-hud-hidden .anime4k-modes,
+.anime4k-player:fullscreen.anime4k-hud-hidden .anime4k-status { transform: translateY(-8px); }
+.anime4k-player:fullscreen.anime4k-hud-hidden .anime4k-controls { transform: translateY(8px); }
 .anime4k-modes { position: absolute; z-index: 3; top: 12px; right: 12px; display: flex; max-width: calc(100% - 24px); align-items: center; gap: 4px; padding: 5px; overflow-x: auto; border: 1px solid rgba(255,255,255,.16); border-radius: 10px; background: rgba(10,8,13,.86); backdrop-filter: blur(12px); scrollbar-width: none; }
 .anime4k-modes span { padding: 0 6px; color: #c9becd; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
-.anime4k-modes button { min-width: 32px; height: 28px; border: 0; border-radius: 7px; background: transparent; color: #b4aab9; cursor: pointer; font-size: 10px; font-weight: 700; }
+.anime4k-modes button { min-width: 44px; height: 44px; border: 0; border-radius: 7px; background: transparent; color: #b4aab9; cursor: pointer; font-size: 10px; font-weight: 700; }
 .anime4k-modes button:hover,.anime4k-modes button:focus-visible { color: white; background: rgba(255,255,255,.1); }
 .anime4k-modes button.active { color: #1b111f; background: #c4a7ff; }
+.anime4k-modes button:disabled { opacity: .45; cursor: wait; }
+.anime4k-modes .anime4k-benchmark-trigger { min-width: 82px; margin-left: 3px; border-left: 1px solid rgba(255,255,255,.14); color: #f2d7a8; }
+.anime4k-modes .anime4k-benchmark-trigger[aria-expanded="true"] { background: rgba(229,179,110,.16); color: #fff1d5; }
 .anime4k-controls { position: absolute; z-index: 3; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 9px; padding: 28px 14px 12px; background: linear-gradient(transparent,rgba(0,0,0,.86)); color: white; }
 .anime4k-controls button { flex: 0 0 auto; min-width: 34px; height: 30px; border: 0; border-radius: 7px; background: rgba(255,255,255,.1); color: white; cursor: pointer; }
 .anime4k-controls span { flex: 0 0 auto; color: #ddd4e0; font-size: 9px; font-variant-numeric: tabular-nums; }
@@ -228,6 +241,33 @@ footer p { margin-right: auto; color: #9e92a4; }
 .anime4k-seek output { position: absolute; bottom: 32px; z-index: 4; padding: 5px 7px; transform: translateX(-50%); border-radius: 6px; background: rgba(8,6,11,.94); color: white; font-size: 9px; font-variant-numeric: tabular-nums; pointer-events: none; }
 .anime4k-controls .anime4k-volume { flex: 0 0 72px; width: 72px; }
 .anime4k-status { position: absolute; z-index: 2; left: 12px; top: 12px; max-width: min(460px,calc(100% - 250px)); padding: 8px 10px; border-radius: 8px; background: rgba(10,8,13,.78); color: #d9cfdd; font-size: 9px; pointer-events: none; }
+.anime4k-benchmark { position: absolute; z-index: 6; top: 64px; right: 12px; width: min(560px,calc(100% - 24px)); max-height: calc(100% - 126px); overflow: auto; padding: 17px; border: 1px solid rgba(235,239,232,.2); border-radius: 12px; background: rgba(17,21,22,.97); color: var(--foreground); box-shadow: 0 24px 70px rgba(0,0,0,.58); }
+.anime4k-benchmark header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.anime4k-benchmark h3 { margin: 4px 0 0; font-size: 17px; letter-spacing: -.02em; }
+.anime4k-benchmark-kicker { color: var(--rose); font-size: 8px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+.anime4k-benchmark p { margin: 12px 0; color: #b9c0bd; font-size: 10px; line-height: 1.55; }
+.anime4k-benchmark button { min-height: 44px; padding: 0 13px; border: 1px solid rgba(235,239,232,.16); border-radius: 8px; background: rgba(255,255,255,.065); color: var(--foreground); cursor: pointer; font-size: 10px; font-weight: 750; }
+.anime4k-benchmark button:hover,.anime4k-benchmark button:focus-visible { border-color: rgba(229,179,110,.55); background: rgba(255,255,255,.1); }
+.anime4k-benchmark .anime4k-benchmark-close { min-height: 44px; }
+.anime4k-benchmark-progress { height: 7px; margin-top: 18px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.1); }
+.anime4k-benchmark-progress i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,var(--violet),var(--rose)); transition: width .12s linear; }
+.anime4k-benchmark-step { display: flex; justify-content: space-between; gap: 16px; margin-top: 10px; color: #aeb5b3; font-size: 9px; }
+.anime4k-benchmark-step strong { color: var(--foreground); text-align: right; }
+.anime4k-benchmark .anime4k-benchmark-cancel { border-color: rgba(240,120,100,.35); color: #ffc2b7; }
+.anime4k-benchmark-table-wrap { overflow-x: auto; margin-top: 13px; border: 1px solid rgba(235,239,232,.12); border-radius: 9px; }
+.anime4k-benchmark table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 9px; font-variant-numeric: tabular-nums; }
+.anime4k-benchmark th,.anime4k-benchmark td { padding: 9px 10px; border-bottom: 1px solid rgba(235,239,232,.09); text-align: right; white-space: nowrap; }
+.anime4k-benchmark thead th { color: #9fa7a4; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.anime4k-benchmark th:first-child { text-align: left; }
+.anime4k-benchmark tbody tr:last-child th,.anime4k-benchmark tbody tr:last-child td { border-bottom: 0; }
+.anime4k-benchmark tbody tr.recommended { background: rgba(113,201,145,.08); }
+.anime4k-benchmark td small,.anime4k-benchmark th small { display: block; margin-top: 2px; color: #8e9794; font-size: 7px; font-weight: 600; }
+.anime4k-benchmark th small { color: #8fe0ad; text-transform: uppercase; letter-spacing: .05em; }
+.anime4k-benchmark td span { display: inline-flex; min-width: 48px; justify-content: center; padding: 4px 6px; border-radius: 999px; font-weight: 800; }
+.anime4k-benchmark td span.smooth { background: rgba(113,201,145,.14); color: #9be5b6; }
+.anime4k-benchmark td span.limited { background: rgba(229,179,110,.13); color: #f1c98d; }
+.anime4k-benchmark-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.anime4k-benchmark-actions .anime4k-benchmark-apply { border-color: rgba(113,201,145,.45); background: rgba(113,201,145,.14); color: #b7edca; }
 .player-note { display: flex; justify-content: space-between; gap: 16px; margin-top: 12px; color: #796f7e; font-size: 8px; }
 
 @keyframes fade-in { from { opacity: 0; } }
@@ -276,6 +316,16 @@ footer p { margin-right: auto; color: #9e92a4; }
   .recommend-grid { grid-template-columns: repeat(2, 1fr); }
   .player-overlay { padding: 10px; }
   .player-note { flex-direction: column; }
+  .anime4k-modes { left: 8px; right: 8px; top: 8px; max-width: none; }
+  .anime4k-benchmark { top: 62px; right: 8px; width: calc(100% - 16px); max-height: calc(100% - 116px); padding: 14px; }
+  .anime4k-benchmark-step { flex-direction: column; gap: 4px; }
+  .anime4k-benchmark-step strong { text-align: left; }
+  .anime4k-benchmark-actions { justify-content: stretch; }
+  .anime4k-benchmark-actions button { flex: 1 1 auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anime4k-benchmark-progress i { transition: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
